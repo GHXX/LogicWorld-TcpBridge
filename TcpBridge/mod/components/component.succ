@@ -1,0 +1,52 @@
+TcpBridge:
+    column: "Miscellaneous"
+    prefab:
+        blocks:
+            -
+                color: c9af38
+                position: (2, 0, 0.5) # 0+2
+                scale: (2.5, 1, 2)
+            -
+                mesh: BufferBody_Long
+                color: c9af38
+                position: (0.75, 0.5, 0) # -1.25+2
+                scale: (1, 1.1, 1)
+                rotation: (0,0,90)
+            -
+                mesh: BufferBody_Long
+                color: c9af38
+                position: (3.25, 0.5, 0) # 1.25+2
+                scale: (1, -1.1, 1)
+                rotation: (0,0,90)
+        inputs:
+            - # data_in
+                position: (0, 0.5, -0.5) # -2+2
+                rotation: (-90, 0, 0)
+                length: 0.6
+            - # clk_in
+                position: (2, 0.5, -0.5) #0+2
+                rotation: (-90, 0, 0)
+                length: 0.8
+            - # enable_in
+                position: (4, 0.5, -0.5) #2+2
+                rotation: (-90, 0, 0)
+                length: 0.6
+        outputs:
+            - # data out
+                position: (0.5, 0.5, 1.5) #-1.5+2
+                rotation: (90, 0, 0)
+            - # data_ready
+                position: (1.5, 0.5, 1.5) #-0.5+2
+                rotation: (90, 0, 0)
+            - # tcp_error
+                position: (2.5, 0.5, 1.5) # 0.5+2
+                rotation: (90, 0, 0)
+            - # is_connected
+                position: (3.5, 0.5, 1.5) # 1.5+2
+                rotation: (90, 0, 0)
+
+    logicCode: GHXX_TcpBridgeMod.Server.TcpBridge
+    placingRules:
+        offsetDimensions: (5, 2)
+        gridPlacingDimensions: (6, 4)
+        allowFineRotation: false
