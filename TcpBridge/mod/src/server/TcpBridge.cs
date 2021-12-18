@@ -4,6 +4,7 @@ using LogicAPI.Server.Components;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -22,6 +23,8 @@ namespace GHXX_TcpBridgeMod.Server
         bool Data_ready_out { get => base.Outputs[1].On; set => base.Outputs[1].On = value; }
         bool Tcp_error_out { get => base.Outputs[2].On; set => base.Outputs[2].On = value; }
         bool Is_connected_out { get => base.Outputs[3].On; set => base.Outputs[3].On = value; }
+
+        bool tcpClientIsConnected = false; // effectively the same as this.tcpClient != null && this.tcpClient.Connected
 
         void debugMsg(string s) => Logger.Info($"TcpBridge {s}");
 
@@ -264,6 +267,15 @@ namespace GHXX_TcpBridgeMod.Server
                             this.tcpClient = null;
                         }
                     }
+                    var sw = new Stopwatch();
+                    sw.Start();
+                    tcpClientIsConnected = this.tcpClient != null && this.tcpClient.Client != null && this.tcpClient.Client.Connected;
+                    sw.Stop();
+                    if (sw.ElapsedMilliseconds > 1)
+                    {
+                        Logger.Warn("Determining connection state took more than 1ms!");
+                    }
+
                     Thread.Sleep(50);
                 }
             }
@@ -350,7 +362,7 @@ namespace GHXX_TcpBridgeMod.Server
                     debugMsg("F2");
                     this.Tcp_error_out = this.tcpErrorWasEncountered;
                     this.Data_ready_out = false; // IsReceiveDataAvailable();
-                    this.Is_connected_out = this.tcpClient != null && this.tcpClient.Connected;
+                    this.Is_connected_out = tcpClientIsConnected;
                 }
             }
             catch (Exception ex)
