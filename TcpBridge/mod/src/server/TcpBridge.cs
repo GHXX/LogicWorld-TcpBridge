@@ -14,7 +14,7 @@ namespace GHXX_TcpBridgeMod.Server
     public class TcpBridge : LogicComponent
     {
         // proxies:
-        byte Data_in 
+        byte Data_in
         {
             get
             {
@@ -85,7 +85,7 @@ namespace GHXX_TcpBridgeMod.Server
                 throw new Exception("Cannot get next receive bit as no data is available!");
             }
             //#endif
-            if (tcpRecBuffer.TryDequeue(out int res))
+            if (this.tcpRecBuffer.TryDequeue(out int res))
             {
                 return (byte)res;
             }
