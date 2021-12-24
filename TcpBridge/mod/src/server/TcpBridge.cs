@@ -13,6 +13,8 @@ namespace GHXX_TcpBridgeMod.Server
 {
     public class TcpBridge : LogicComponent
     {
+        const bool enableDebugMessages = true;
+
         // proxies:
         byte Data_in
         {
@@ -62,7 +64,13 @@ namespace GHXX_TcpBridgeMod.Server
 
         bool IsTcpClientIsConnected => this.tcpClient != null && this.tcpClient.Connected;
 
-        void DebugMsg(string s) => Logger.Info($"TcpBridge {s}");
+        void DebugMsg(string s)
+        {
+            if (enableDebugMessages)
+#pragma warning disable CS0162 // Unreachable code detected
+                Logger.Info($"TcpBridge {s}");
+#pragma warning restore CS0162 // Unreachable code detected
+        }
 
         TcpClient tcpClient = null;
         NetworkStream tcpStream = null;
@@ -195,7 +203,7 @@ namespace GHXX_TcpBridgeMod.Server
                                 else
                                 {
                                     string hostname = "";
-                                    string portString = "";
+                                    var portBytes = new List<ushort>(2);
                                     bool colonFound = false;
                                     for (int i = 0; i < this.tcpConnectDataBuffer.Count; i++)
                                     {
@@ -216,34 +224,33 @@ namespace GHXX_TcpBridgeMod.Server
                                         else
                                         {
                                             if (colonFound)
-                                                portString += chr;
+                                            {
+                                                if (portBytes.Count > 1) // if 2 are in there already
+                                                {
+                                                    Logger.Info("More than 2 bytes were supplied to represent the port.");
+                                                }
+                                                portBytes.Add((ushort)this.tcpConnectDataBuffer[i]);
+                                            }
                                             else
                                                 hostname += chr;
                                         }
                                     }
 
+                                    ushort port = (ushort)((portBytes[0] << 8) | portBytes[1]);
                                     if (!errored)
                                     {
-                                        if (ushort.TryParse(portString, out ushort port))
+                                        this.tcpClient = new TcpClient();
+                                        try
                                         {
-                                            this.tcpClient = new TcpClient();
-                                            try
-                                            {
-                                                Logger.Info($"Attempting to connect to host: {hostname}:{(int)port}");
-                                                this.tcpClient.Connect(hostname, (int)port);
-                                                Logger.Info($"Connected to connect to host: {hostname}:{(int)port}");
-                                                QueueLogicUpdate();
-                                            }
-                                            catch (Exception ex)
-                                            {
-                                                Logger.Info($"Connecting failed with ex: {ex}");
-                                                errored = true;
-                                            }
+                                            Logger.Info($"Attempting to connect to host: {hostname}:{(int)port}");
+                                            this.tcpClient.Connect(hostname, (int)port);
+                                            Logger.Info($"Connected to connect to host: {hostname}:{(int)port}");
+                                            QueueLogicUpdate();
                                         }
-                                        else
+                                        catch (Exception ex)
                                         {
+                                            Logger.Info($"Connecting failed with ex: {ex}");
                                             errored = true;
-                                            Logger.Info("Connecting failed: Invalid port");
                                         }
                                     }
                                 }
