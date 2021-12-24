@@ -183,10 +183,19 @@ namespace GHXX_TcpBridgeMod.Server
                                         this.tcpClient = new TcpClient();
                                         try
                                         {
-                                            Logger.Info($"Attempting to connect to ip: {string.Join(".", ipBytes.Select(x => $"{x}"))}:{port}");
-                                            this.tcpClient.Connect(new IPAddress(ipBytes), port);
-                                            Logger.Info($"Connected to connect to ip: {string.Join(".", ipBytes.Select(x => $"{x}"))}:{port}");
-                                            QueueLogicUpdate();
+                                            var address = new IPAddress(ipBytes);
+                                            if (Util.IsAddressAllowed(address))
+                                            {
+                                                Logger.Info($"Attempting to connect to ip: {string.Join(".", ipBytes.Select(x => $"{x}"))}:{port}");
+                                                this.tcpClient.Connect(address, port);
+                                                Logger.Info($"Connected to connect to ip: {string.Join(".", ipBytes.Select(x => $"{x}"))}:{port}");
+                                                QueueLogicUpdate();
+                                            }
+                                            else
+                                            {
+                                                Logger.Info($"Attempted to connect to blacklisted ip: {string.Join(".", ipBytes.Select(x => $"{x}"))}:{port}");
+                                                errored = true;
+                                            }
                                         }
                                         catch (Exception ex)
                                         {
@@ -228,6 +237,8 @@ namespace GHXX_TcpBridgeMod.Server
                                                 if (portBytes.Count > 1) // if 2 are in there already
                                                 {
                                                     Logger.Info("More than 2 bytes were supplied to represent the port.");
+                                                    errored = true;
+                                                    break;
                                                 }
                                                 portBytes.Add((ushort)this.tcpConnectDataBuffer[i]);
                                             }
@@ -242,10 +253,30 @@ namespace GHXX_TcpBridgeMod.Server
                                         this.tcpClient = new TcpClient();
                                         try
                                         {
-                                            Logger.Info($"Attempting to connect to host: {hostname}:{(int)port}");
-                                            this.tcpClient.Connect(hostname, (int)port);
-                                            Logger.Info($"Connected to connect to host: {hostname}:{(int)port}");
-                                            QueueLogicUpdate();
+                                            var addresses = Dns.GetHostAddresses(hostname);
+
+                                            if (addresses.Length == 0)
+                                            {
+                                                Logger.Info($"Dns lookup for host '{hostname}' failed: No addreses exist for this host.");
+                                                errored = true;
+                                            }
+                                            else
+                                            {
+                                                var blacklistedAddresses = addresses.Where(x => !Util.IsAddressAllowed(x)).ToList();
+                                                if (blacklistedAddresses.Count == 0) // no addresses were blacklisted --> connect
+                                                {
+                                                    var address = addresses.First();
+                                                    Logger.Info($"Attempting to connect to host: {hostname}:{(int)port} ({address}:{(int)port})");
+                                                    this.tcpClient.Connect(address, (int)port);
+                                                    Logger.Info($"Connected to connect to host: {hostname}:{(int)port} ({address}:{(int)port})");
+                                                    QueueLogicUpdate();
+                                                }
+                                                else // otherwise reject
+                                                {
+                                                    Logger.Info($"Attempted to connect to host '{hostname}', but one of the ip addresses ({string.Join(", ", blacklistedAddresses.Select(x => x.ToString()))}) is blacklisted, thus no connection was made.");
+                                                    errored = true;
+                                                }
+                                            }
                                         }
                                         catch (Exception ex)
                                         {
