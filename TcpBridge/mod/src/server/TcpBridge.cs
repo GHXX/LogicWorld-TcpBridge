@@ -253,19 +253,17 @@ namespace GHXX_TcpBridgeMod.Server
                                         this.tcpClient = new TcpClient();
                                         try
                                         {
-                                            var addresses = Dns.GetHostAddresses(hostname);
-
-                                            if (addresses.Length == 0)
+                                            errored = IPAddress.TryParse(hostname, out var address);
+                                            if (errored)
                                             {
                                                 Logger.Info($"Dns lookup for host '{hostname}' failed: No addreses exist for this host.");
                                                 errored = true;
                                             }
                                             else
                                             {
-                                                var blacklistedAddresses = addresses.Where(x => !Util.IsAddressAllowed(x)).ToList();
-                                                if (blacklistedAddresses.Count == 0) // no addresses were blacklisted --> connect
+                                                var addressOK = Util.IsAddressAllowed(address);
+                                                if (addressOK) // address isnt blacklisted --> connect
                                                 {
-                                                    var address = addresses.First();
                                                     Logger.Info($"Attempting to connect to host: {hostname}:{(int)port} ({address}:{(int)port})");
                                                     this.tcpClient.Connect(address, (int)port);
                                                     Logger.Info($"Connected to connect to host: {hostname}:{(int)port} ({address}:{(int)port})");
@@ -273,7 +271,7 @@ namespace GHXX_TcpBridgeMod.Server
                                                 }
                                                 else // otherwise reject
                                                 {
-                                                    Logger.Info($"Attempted to connect to host '{hostname}', but one of the ip addresses ({string.Join(", ", blacklistedAddresses.Select(x => x.ToString()))}) is blacklisted, thus no connection was made.");
+                                                    Logger.Info($"Attempted to connect to host '{hostname}', but its ip addresse ({address}) is blacklisted, thus no connection was made.");
                                                     errored = true;
                                                 }
                                             }
