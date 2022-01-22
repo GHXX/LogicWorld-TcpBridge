@@ -33,4 +33,4 @@ Before enabling the enable_in pin, you need to supply the following bytes of dat
   
 * 2 bytes for the port, where first the higher byte is written, then the lower, e.g. port 9999 would be written as 0010 01110, 0000,1111
 
-Once this is written, you must enable the enable-pin, to start the connection. Writing additional unexpected bytes wi
+Once this is written, you must enable the enable-pin, to start the connection. Writing additional unexpected bytes will cause the connection procedure to fail.
