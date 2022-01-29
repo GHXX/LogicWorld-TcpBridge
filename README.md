@@ -31,6 +31,6 @@ Before enabling the enable_in pin, you need to supply the following bytes of dat
   * If M == 1: 4 bytes for the ip address in the format A.B.C.D, where first A is written, then B and so on
   * If M == 0: a sequence of ascii-extended letters (0-255), ending with a colon character (':'), in the order of first to last byte. e.g. `mywebsite.com:`
   
-* 2 bytes for the port, where first the higher byte is written, then the lower, e.g. port 9999 would be written as 0010 01110, 0000,1111
+* 2 bytes for the port, where first the higher byte is written, then the lower, e.g. port 9999 would be written as 0010 0111, 0000 1111
 
 Once this is written, you must enable the enable-pin, to start the connection. Writing additional unexpected bytes will cause the connection procedure to fail.
