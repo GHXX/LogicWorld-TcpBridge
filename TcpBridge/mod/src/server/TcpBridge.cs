@@ -247,7 +247,7 @@ namespace GHXX_TcpBridgeMod.Server
                                         }
                                     }
 
-                                    ushort port = (ushort)((portBytes[0] << 8) | portBytes[1]);
+                                    ushort port = portBytes.Count == 2 ? (ushort)((portBytes[0] << 8) | portBytes[1]) : (ushort)0;
                                     if (!errored)
                                     {
                                         this.tcpClient = new TcpClient();
