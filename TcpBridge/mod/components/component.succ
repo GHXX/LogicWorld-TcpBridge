@@ -16,8 +16,8 @@ TcpBridge:
                 mesh: BufferBody_Long
                 color: c9af38
                 position: (3.25, 1, 0) # 1.25+2
-                scale: (2, -1.1, 1)
-                rotation: (0,0,90)
+                scale: (2, 1.1, 1)
+                rotation: (0,0,270)
         inputs:
             - # data_in x8
                 position: (0, 1.5, -0.5) # -2+2
