@@ -34,3 +34,13 @@ Before enabling the enable_in pin, you need to supply the following bytes of dat
 * 2 bytes for the port, where first the higher byte is written, then the lower, e.g. port 9999 would be written as 0010 0111, 0000 1111
 
 Once this is written, you must enable the enable-pin, to start the connection. Writing additional unexpected bytes will cause the connection procedure to fail.
+
+# About security and accessing local networks
+For security reasons, access to the local network (localhost and home-lans) is **blocked** by default. 
+I.e if you are running a server, allowing access to other local stuff could pose a high security risk as this **will** allow people to bypass the server's firewall - therefore it is disabled by dfeault.
+
+If you do want to access local networks, you need to head over to the file Config.cs at TcpBridge/mod/src/server/Config.cs and prefix the IP ranges that you are trying to access with C#'s comment indicator, being `//`.
+
+For example, the line `"127.0.0.0/8",` would become `// "127.0.0.0/8",`. 
+
+If you are commenting out the last entry of that blacklist array, you may have to remove the comma of the last valid entry in case you are facing a compile-error.
