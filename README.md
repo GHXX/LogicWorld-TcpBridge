@@ -37,7 +37,7 @@ Once this is written, you must enable the enable-pin, to start the connection. W
 
 # About security and accessing local networks
 For security reasons, access to the local network (localhost and home-lans) is **blocked** by default. 
-I.e if you are running a server, allowing access to other local stuff could pose a high security risk as this **will** allow people to bypass the server's firewall - therefore it is disabled by dfeault.
+I.e if you are running a server, allowing access to other local stuff could pose a high security risk as this **will** allow people to bypass the server's firewall - therefore it is disabled by default.
 
 If you do want to access local networks, you need to head over to the file Config.cs at TcpBridge/mod/src/server/Config.cs and prefix the IP ranges that you are trying to access with C#'s comment indicator, being `//`.
 
