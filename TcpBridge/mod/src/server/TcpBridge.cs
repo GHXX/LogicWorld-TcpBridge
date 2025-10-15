@@ -13,7 +13,7 @@ namespace GHXX_TcpBridgeMod.Server
 {
     public class TcpBridge : LogicComponent
     {
-        const bool enableDebugMessages = true;
+        const bool enableDebugMessages = false;
 
         // proxies:
         byte Data_in
@@ -113,12 +113,12 @@ namespace GHXX_TcpBridgeMod.Server
             else
             {
                 DebugMsg($"Read serial input byte: 0x{input:X2}");
-                if (this.enableConnection) // connection should be active at this point -> throw it into the tcp send buffer
-                {
+                if (this.enableConnection) 
+                { // connection should be active at this point -> throw it into the tcp send buffer
                     this.tcpSendBuffer.Enqueue(input);
                 }
-                else // connection should not be active --> we are still in setup phase --> throw it into the setup buffer
-                {
+                else 
+                { // connection should not be active --> we are still in setup phase --> throw it into the setup buffer
                     this.tcpConnectDataBuffer.Add(input);
                 }
             }
@@ -342,7 +342,7 @@ namespace GHXX_TcpBridgeMod.Server
 
         public override bool InputAtIndexShouldTriggerComponentLogicUpdates(int inputIndex)
         {
-            return inputIndex != 0;
+            return inputIndex >= 8; // ignore the 8 data inputs as they do not trigger an update
         }
         protected override void DoLogicUpdate()
         {
@@ -359,38 +359,25 @@ namespace GHXX_TcpBridgeMod.Server
                 }
                 else
                 {
-                    if (this.lastClkIn != this.Clk_in_in) // first check clock-edges
-                    {
-                        DebugMsg("E");
-                        if (this.Clk_in_in) // rising edge -> accept new data
-                        {
-                            AddSendByte(this.Data_in);
-                        }
-                        this.lastClkIn = this.Clk_in_in;
+                    if (Clk_in_in) {
+                        AddSendByte(this.Data_in);
+                        QueueLogicUpdate(); // we need to keep reading data each tick
                     }
-                    if (this.lastClkOut != this.Clk_out_in) // second check clock-edges
-                    {
-                        DebugMsg("E");
-                        if (this.Clk_out_in) // rising edge -> accept new data
-                        {
-                            if (this.Data_ready_out)
-                            {
-                                DebugMsg("E2");
-                                //#if ENABLE_DEBUG_CHECKS
-                                if (!IsReceiveDataAvailable())
-                                {
-                                    DebugMsg("E2ERR");
-                                    throw new Exception("No receivedata is available, even though the data_ready_out bit is set!");
-                                }
 
-                                DebugMsg("E3");
-                                //#endif
-                                this.Data_out = GetNextReceivedByte();
-                                DebugMsg("E3-done");
+                    this.Data_ready_out = IsReceiveDataAvailable();
+                    if (Clk_out_in) {
+                        if (this.Data_ready_out) {
+                            DebugMsg("E2");
+                            if (!IsReceiveDataAvailable()) {
+                                throw new Exception("No receivedata is available, even though the data_ready_out bit is set!");
                             }
+
+                            DebugMsg("E3");
+                            //#endif
+                            this.Data_out = GetNextReceivedByte();
+                            DebugMsg("E3-done");
                         }
-                        this.lastClkOut = this.Clk_out_in;
-                    }
+                    }                    
 
                     if (this.lastEnabled != this.Enable_in) // then check enable-edges
                     {
@@ -403,7 +390,6 @@ namespace GHXX_TcpBridgeMod.Server
                         {
                             this.enableConnection = false;
                             this.tcpErrorWasEncountered = false;
-                            // TODO clear buffers
 
                             this.connectFlags = -1;
                             this.Data_out = 0;
@@ -416,13 +402,8 @@ namespace GHXX_TcpBridgeMod.Server
                         this.lastEnabled = this.Enable_in;
                     }
 
-                    DebugMsg("F2");
                     this.Tcp_error_out = this.tcpErrorWasEncountered;
-                    DebugMsg("F3");
-                    this.Data_ready_out = IsReceiveDataAvailable();
-                    DebugMsg("F4");
                     this.Is_connected_out = this.IsTcpClientIsConnected;
-                    DebugMsg("F5-done");
                 }
             }
             catch (Exception ex)
