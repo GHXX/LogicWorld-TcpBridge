@@ -11,7 +11,7 @@ using System.Threading;
 
 namespace GHXX_TcpBridgeMod.Server {
     public class TcpBridge : LogicComponent {
-        private const bool enableDebugMessages = false;
+        private bool EnableDebugMessages => Config.ShowDebugMessages;
 
         // proxies:
         private byte Data_in {
@@ -55,7 +55,7 @@ namespace GHXX_TcpBridgeMod.Server {
         private bool IsTcpClientIsConnected => this.tcpClient != null && this.tcpClient.Connected;
 
         private void DebugMsg(string s) {
-            if (enableDebugMessages)
+            if (EnableDebugMessages)
 #pragma warning disable CS0162 // Unreachable code detected
                 Logger.Info($"TcpBridge {s}");
 #pragma warning restore CS0162 // Unreachable code detected

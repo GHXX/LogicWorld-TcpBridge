@@ -1,6 +1,6 @@
 ﻿namespace GHXX_TcpBridgeMod.Server {
     internal static class Config {
-        public const bool ShowDebugMessages = true;
+        public const bool ShowDebugMessages = false;
 
         public const bool AllowIPv6Connections = false; // if this is set to true then ALL ipv6 addresses will be allowed. If set to false, ALL ipv6 addresses will be blocked
 
