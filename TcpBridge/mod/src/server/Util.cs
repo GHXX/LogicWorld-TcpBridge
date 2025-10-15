@@ -2,22 +2,17 @@
 using System.Linq;
 using System.Net;
 
-namespace GHXX_TcpBridgeMod.Server
-{
-    static class Util
-    {
+namespace GHXX_TcpBridgeMod.Server {
+    internal static class Util {
         /// <summary>
         /// Returns whether or not the current address may be connected to. This takes the blacklist in <see cref="Config"/>
         /// </summary>
         /// <param name="addr">The ip address to check</param>
         /// <returns>True if the address is not blacklisted, false if it is blacklisted.</returns>
-        public static bool IsAddressAllowed(IPAddress addr)
-        {
+        public static bool IsAddressAllowed(IPAddress addr) {
             var ipBytes = addr.GetAddressBytes();
-            if (ipBytes.Length == 4)
-            {
-                foreach (var filter in Config.IpAddressBlacklist)
-                {
+            if (ipBytes.Length == 4) {
+                foreach (var filter in Config.IpAddressBlacklist) {
                     var splitted = filter.Split("/");
                     if (splitted.Length != 2)
                         throw new FormatException("Invalid ip filter fromat!");
@@ -30,14 +25,12 @@ namespace GHXX_TcpBridgeMod.Server
                     var filterBitcount = byte.Parse(splitted[1]);
 
                     bool isInSubnet = true;
-                    for (int bit = 0; bit < filterBitcount; bit++)
-                    {
+                    for (int bit = 0; bit < filterBitcount; bit++) {
                         var bitIndex = bit % 8;
                         var byteIndex = bit / 8;
 
                         // if the bits are not equal at the given position, then we are not in this subnet --> therefore this rule passes
-                        if (((addressBytes[byteIndex] << bitIndex) & 0x8) != ((ipBytes[byteIndex] << bitIndex) & 0x8))
-                        {
+                        if (((addressBytes[byteIndex] << bitIndex) & 0x8) != ((ipBytes[byteIndex] << bitIndex) & 0x8)) {
                             isInSubnet = false;
                             break;
                         }
@@ -48,13 +41,10 @@ namespace GHXX_TcpBridgeMod.Server
                 }
 
                 return true;
-            }
-            else if (ipBytes.Length == 8) // ipv6
-            {
+            } else if (ipBytes.Length == 8) // ipv6
+              {
                 return Config.AllowIPv6Connections;
-            }
-            else
-            {
+            } else {
                 throw new NotImplementedException($"Invalid ip length: {ipBytes.Length}");
             }
         }

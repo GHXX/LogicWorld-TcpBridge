@@ -9,20 +9,15 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace GHXX_TcpBridgeMod.Server
-{
-    public class TcpBridge : LogicComponent
-    {
-        const bool enableDebugMessages = false;
+namespace GHXX_TcpBridgeMod.Server {
+    public class TcpBridge : LogicComponent {
+        private const bool enableDebugMessages = false;
 
         // proxies:
-        byte Data_in
-        {
-            get
-            {
+        private byte Data_in {
+            get {
                 byte sum = 0;
-                for (int i = 0; i < 8; i++)
-                {
+                for (int i = 0; i < 8; i++) {
                     sum <<= 1;
                     if (base.Inputs[i].On)
                         sum |= 1;
@@ -30,17 +25,14 @@ namespace GHXX_TcpBridgeMod.Server
                 return sum;
             }
         }
-        bool Clk_in_in { get => base.Inputs[8].On; }
-        bool Clk_out_in { get => base.Inputs[9].On; }
-        bool Enable_in { get => base.Inputs[10].On; }
+        private bool Clk_in_in { get => base.Inputs[8].On; }
+        private bool Clk_out_in { get => base.Inputs[9].On; }
+        private bool Enable_in { get => base.Inputs[10].On; }
 
-        byte Data_out
-        {
-            get
-            {
+        private byte Data_out {
+            get {
                 byte sum = 0;
-                for (int i = 0; i < 8; i++)
-                {
+                for (int i = 0; i < 8; i++) {
                     if (base.Outputs[i].On)
                         sum |= 1;
                     sum <<= 1;
@@ -48,84 +40,68 @@ namespace GHXX_TcpBridgeMod.Server
                 return sum;
             }
 
-            set
-            {
-                for (int i = 7; i >= 0; i--)
-                {
+            set {
+                for (int i = 7; i >= 0; i--) {
                     base.Outputs[i].On = (value & 1) > 0;
                     value >>= 1;
                 }
             }
         }
 
-        bool Data_ready_out { get => base.Outputs[8].On; set => base.Outputs[8].On = value; }
-        bool Tcp_error_out { get => base.Outputs[9].On; set => base.Outputs[9].On = value; }
-        bool Is_connected_out { get => base.Outputs[10].On; set => base.Outputs[10].On = value; }
+        private bool Data_ready_out { get => base.Outputs[8].On; set => base.Outputs[8].On = value; }
+        private bool Tcp_error_out { get => base.Outputs[9].On; set => base.Outputs[9].On = value; }
+        private bool Is_connected_out { get => base.Outputs[10].On; set => base.Outputs[10].On = value; }
 
-        bool IsTcpClientIsConnected => this.tcpClient != null && this.tcpClient.Connected;
+        private bool IsTcpClientIsConnected => this.tcpClient != null && this.tcpClient.Connected;
 
-        void DebugMsg(string s)
-        {
+        private void DebugMsg(string s) {
             if (enableDebugMessages)
 #pragma warning disable CS0162 // Unreachable code detected
                 Logger.Info($"TcpBridge {s}");
 #pragma warning restore CS0162 // Unreachable code detected
         }
 
-        TcpClient tcpClient = null;
-        NetworkStream tcpStream = null;
+        private TcpClient tcpClient = null;
+        private NetworkStream tcpStream = null;
 
-        short connectFlags = -1; // actually byte
-        ConcurrentQueue<byte> tcpSendBuffer = null;
-        List<int> tcpConnectDataBuffer = null;
-        ConcurrentQueue<int> tcpRecBuffer = null;
+        private short connectFlags = -1; // actually byte
+        private ConcurrentQueue<byte> tcpSendBuffer = null;
+        private List<int> tcpConnectDataBuffer = null;
+        private ConcurrentQueue<int> tcpRecBuffer = null;
 
-        Thread workerThread = null;
+        private Thread workerThread = null;
         // serial: read and write least significant bit first, and msb last
 
-        bool IsReceiveDataAvailable() => !this.tcpRecBuffer.IsEmpty; // whether or not we can synchronously read a byte
+        private bool IsReceiveDataAvailable() => !this.tcpRecBuffer.IsEmpty; // whether or not we can synchronously read a byte
 
-        byte GetNextReceivedByte()
-        {
+        private byte GetNextReceivedByte() {
             //#if ENABLE_DEBUG_CHECKS
-            if (!IsReceiveDataAvailable())
-            {
+            if (!IsReceiveDataAvailable()) {
                 throw new Exception("Cannot get next receive bit as no data is available!");
             }
             //#endif
-            if (this.tcpRecBuffer.TryDequeue(out int res))
-            {
+            if (this.tcpRecBuffer.TryDequeue(out int res)) {
                 return (byte)res;
-            }
-            else
-            {
+            } else {
                 throw new Exception("Receive data dequeueing failed!");
             }
         }
 
-        void AddSendByte(byte input)
-        {
-            if (this.connectFlags == -1)
-            {
+        private void AddSendByte(byte input) {
+            if (this.connectFlags == -1) {
                 DebugMsg($"Read connect flag input byte: 0x{input:X2}");
                 this.connectFlags = input;
-            }
-            else
-            {
+            } else {
                 DebugMsg($"Read serial input byte: 0x{input:X2}");
-                if (this.enableConnection) 
-                { // connection should be active at this point -> throw it into the tcp send buffer
+                if (this.enableConnection) { // connection should be active at this point -> throw it into the tcp send buffer
                     this.tcpSendBuffer.Enqueue(input);
-                }
-                else 
-                { // connection should not be active --> we are still in setup phase --> throw it into the setup buffer
+                } else { // connection should not be active --> we are still in setup phase --> throw it into the setup buffer
                     this.tcpConnectDataBuffer.Add(input);
                 }
             }
         }
 
-        protected override void Initialize()
-        {
+        protected override void Initialize() {
             base.Initialize();
             this.tcpSendBuffer = new ConcurrentQueue<byte>();
             this.tcpConnectDataBuffer = new List<int>();
@@ -135,24 +111,18 @@ namespace GHXX_TcpBridgeMod.Server
             this.workerThread.Start();
         }
 
-        bool enableConnection = false;
-        bool tcpErrorWasEncountered = false;
-        private void WorkerThreadRun()
-        {
-            try
-            {
-                while (true)
-                {
-                    if (!this.tcpErrorWasEncountered)
-                    {
-                        while (this.tcpSendBuffer.TryDequeue(out byte res))
-                        {
+        private bool enableConnection = false;
+        private bool tcpErrorWasEncountered = false;
+        private void WorkerThreadRun() {
+            try {
+                while (true) {
+                    if (!this.tcpErrorWasEncountered) {
+                        while (this.tcpSendBuffer.TryDequeue(out byte res)) {
                             DebugMsg("A");
                             this.tcpStream.WriteByte(res);
                         }
 
-                        while (this.tcpRecBuffer.Count < 10 && this.tcpClient != null && this.tcpClient.Available > 0)
-                        {
+                        while (this.tcpRecBuffer.Count < 10 && this.tcpClient != null && this.tcpClient.Available > 0) {
                             bool queueUpdate = this.tcpRecBuffer.Count == 0;
                             DebugMsg("B");
                             this.tcpRecBuffer.Enqueue(this.tcpStream.ReadByte());
@@ -161,79 +131,55 @@ namespace GHXX_TcpBridgeMod.Server
 
                         }
 
-                        if (this.enableConnection && this.tcpClient == null)
-                        {
+                        if (this.enableConnection && this.tcpClient == null) {
                             DebugMsg("C");
-                            if (this.connectFlags == -1) // cant connect if the connect flags havent been set
-                            {
+                            if (this.connectFlags == -1) { // cant connect if the connect flags havent been set
                                 this.tcpErrorWasEncountered = true;
                                 Logger.Info("Connecting failed: Connect flags werent set!");
-                            }
-                            else
-                            {
+                            } else {
                                 Logger.Info($"Connectflags: 0x{this.connectFlags:X2}");
                                 bool useIpAddress = (0b1000_0000 & this.connectFlags) != 0;
                                 bool errored = false;
-                                if (useIpAddress)
-                                {
-                                    if (this.tcpConnectDataBuffer.Count == 6) // we need 4 + 2 bytes for address + port
-                                    {
+                                if (useIpAddress) {
+                                    if (this.tcpConnectDataBuffer.Count == 6) { // we need 4 + 2 bytes for address + port
                                         var ipBytes = this.tcpConnectDataBuffer.Take(4).Select(x => (byte)x).ToArray();
                                         var port = (this.tcpConnectDataBuffer[4] << 8) | this.tcpConnectDataBuffer[5];
                                         this.tcpClient = new TcpClient();
-                                        try
-                                        {
+                                        try {
                                             var address = new IPAddress(ipBytes);
-                                            if (Util.IsAddressAllowed(address))
-                                            {
+                                            if (Util.IsAddressAllowed(address)) {
                                                 Logger.Info($"Attempting to connect to ip: {string.Join(".", ipBytes.Select(x => $"{x}"))}:{port}");
                                                 this.tcpClient.Connect(address, port);
                                                 Logger.Info($"Connected to connect to ip: {string.Join(".", ipBytes.Select(x => $"{x}"))}:{port}");
                                                 QueueLogicUpdate();
-                                            }
-                                            else
-                                            {
+                                            } else {
                                                 Logger.Info($"Attempted to connect to blacklisted ip: {string.Join(".", ipBytes.Select(x => $"{x}"))}:{port}");
                                                 errored = true;
                                             }
-                                        }
-                                        catch (Exception ex)
-                                        {
+                                        } catch (Exception ex) {
                                             Logger.Info($"Connecting to ip failed with ex: {ex}");
                                             errored = true;
                                         }
-                                    }
-                                    else
-                                    {
+                                    } else {
                                         Logger.Info($"Connecting failed: Not enough or too many bytes given. Exactly 6 needed, {this.tcpConnectDataBuffer.Count} given.");
                                         errored = true;
                                     }
-                                }
-                                else
-                                {
+                                } else {
                                     string hostname = "";
                                     var portBytes = new List<ushort>(2);
                                     bool colonFound = false;
-                                    for (int i = 0; i < this.tcpConnectDataBuffer.Count; i++)
-                                    {
+                                    for (int i = 0; i < this.tcpConnectDataBuffer.Count; i++) {
                                         char chr = (char)this.tcpConnectDataBuffer[i];
-                                        if (this.tcpConnectDataBuffer[i] == ':')
-                                        {
-                                            if (!colonFound)
-                                            {
+                                        if (this.tcpConnectDataBuffer[i] == ':') {
+                                            if (!colonFound) {
                                                 colonFound = true;
-                                            }
-                                            else
-                                            {
+                                            } else {
                                                 Logger.Info("Connecting failed: hostname:port compound did not contain a ':' character");
                                                 errored = true;
                                                 break;
                                             }
-                                        }
-                                        else
-                                        {
-                                            if (colonFound)
-                                            {
+                                        } else {
+                                            if (colonFound) {
                                                 if (portBytes.Count > 1) // if 2 are in there already
                                                 {
                                                     Logger.Info("More than 2 bytes were supplied to represent the port.");
@@ -241,26 +187,20 @@ namespace GHXX_TcpBridgeMod.Server
                                                     break;
                                                 }
                                                 portBytes.Add((ushort)this.tcpConnectDataBuffer[i]);
-                                            }
-                                            else
+                                            } else
                                                 hostname += chr;
                                         }
                                     }
 
                                     ushort port = portBytes.Count == 2 ? (ushort)((portBytes[0] << 8) | portBytes[1]) : (ushort)0;
-                                    if (!errored)
-                                    {
+                                    if (!errored) {
                                         this.tcpClient = new TcpClient();
-                                        try
-                                        {
+                                        try {
                                             errored = IPAddress.TryParse(hostname, out var address);
-                                            if (errored)
-                                            {
+                                            if (errored) {
                                                 Logger.Info($"Dns lookup for host '{hostname}' failed: No addreses exist for this host.");
                                                 errored = true;
-                                            }
-                                            else
-                                            {
+                                            } else {
                                                 var addressOK = Util.IsAddressAllowed(address);
                                                 if (addressOK) // address isnt blacklisted --> connect
                                                 {
@@ -268,46 +208,35 @@ namespace GHXX_TcpBridgeMod.Server
                                                     this.tcpClient.Connect(address, (int)port);
                                                     Logger.Info($"Connected to connect to host: {hostname}:{(int)port} ({address}:{(int)port})");
                                                     QueueLogicUpdate();
-                                                }
-                                                else // otherwise reject
-                                                {
+                                                } else // otherwise reject
+                                                  {
                                                     Logger.Info($"Attempted to connect to host '{hostname}', but its ip addresse ({address}) is blacklisted, thus no connection was made.");
                                                     errored = true;
                                                 }
                                             }
-                                        }
-                                        catch (Exception ex)
-                                        {
+                                        } catch (Exception ex) {
                                             Logger.Info($"Connecting failed with ex: {ex}");
                                             errored = true;
                                         }
                                     }
                                 }
 
-                                if (!errored)
-                                {
+                                if (!errored) {
                                     this.tcpStream = this.tcpClient.GetStream();
-                                }
-                                else
-                                {
+                                } else {
                                     this.tcpErrorWasEncountered = true;
                                     DebugMsg("C2e");
                                 }
                             }
 
-                            if (this.tcpErrorWasEncountered)
-                            {
+                            if (this.tcpErrorWasEncountered) {
                                 QueueLogicUpdate();
                             }
-                        }
-                        else if (!this.enableConnection && this.tcpClient != null)
-                        {
-                            try
-                            {
+                        } else if (!this.enableConnection && this.tcpClient != null) {
+                            try {
                                 this.tcpClient.Close();
                                 QueueLogicUpdate();
-                            }
-                            catch (Exception) { }
+                            } catch (Exception) { }
 
                             this.tcpClient = null;
                         }
@@ -324,9 +253,7 @@ namespace GHXX_TcpBridgeMod.Server
 
                     Thread.Sleep(50);
                 }
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 Logger.Fatal($"Caught workerthread exception: {ex}");
             }
         }
@@ -335,38 +262,32 @@ namespace GHXX_TcpBridgeMod.Server
         // public override bool HasPersistentValues => true; 
 
 
-        bool firstUpdateSkipped = false;
-        bool lastClkIn = false;
-        bool lastClkOut = false;
-        bool lastEnabled = false;
+        private bool firstUpdateSkipped = false;
+        private bool lastClkIn = false;
+        private bool lastClkOut = false;
+        private bool lastEnabled = false;
 
-        public override bool InputAtIndexShouldTriggerComponentLogicUpdates(int inputIndex)
-        {
+        public override bool InputAtIndexShouldTriggerComponentLogicUpdates(int inputIndex) {
             return inputIndex >= 8; // ignore the 8 data inputs as they do not trigger an update
         }
-        protected override void DoLogicUpdate()
-        {
-            try
-            {
+        protected override void DoLogicUpdate() {
+            try {
 
-                if (!this.firstUpdateSkipped) // when init isnt completed yet, so we dont falsely trigger anything on the first iteration
-                {
+                if (!this.firstUpdateSkipped) { // when init isnt completed yet, so we dont falsely trigger anything on the first iteration
                     DebugMsg("D");
                     this.firstUpdateSkipped = true;
-                    this.lastClkIn = this.Clk_in_in;
-                    this.lastClkOut = this.Clk_out_in;
-                    this.lastEnabled = this.Enable_in;
-                }
-                else
-                {
+                    this.lastClkIn = Clk_in_in;
+                    this.lastClkOut = Clk_out_in;
+                    this.lastEnabled = Enable_in;
+                } else {
                     if (Clk_in_in) {
-                        AddSendByte(this.Data_in);
+                        AddSendByte(Data_in);
                         QueueLogicUpdate(); // we need to keep reading data each tick
                     }
 
-                    this.Data_ready_out = IsReceiveDataAvailable();
+                    Data_ready_out = IsReceiveDataAvailable();
                     if (Clk_out_in) {
-                        if (this.Data_ready_out) {
+                        if (Data_ready_out) {
                             DebugMsg("E2");
                             if (!IsReceiveDataAvailable()) {
                                 throw new Exception("No receivedata is available, even though the data_ready_out bit is set!");
@@ -374,46 +295,42 @@ namespace GHXX_TcpBridgeMod.Server
 
                             DebugMsg("E3");
                             //#endif
-                            this.Data_out = GetNextReceivedByte();
+                            Data_out = GetNextReceivedByte();
                             DebugMsg("E3-done");
                         }
-                    }                    
+                    }
 
-                    if (this.lastEnabled != this.Enable_in) // then check enable-edges
+                    if (this.lastEnabled != Enable_in) // then check enable-edges
                     {
                         DebugMsg("F");
-                        if (this.Enable_in) // rising edge
+                        if (Enable_in) // rising edge
                         {
                             this.enableConnection = true;
-                        }
-                        else // falling edge
-                        {
+                        } else // falling edge
+                          {
                             this.enableConnection = false;
                             this.tcpErrorWasEncountered = false;
 
                             this.connectFlags = -1;
-                            this.Data_out = 0;
+                            Data_out = 0;
 
                             this.tcpSendBuffer.Clear();
                             this.tcpConnectDataBuffer.Clear();
                             this.tcpRecBuffer.Clear();
                             QueueLogicUpdate();
                         }
-                        this.lastEnabled = this.Enable_in;
+                        this.lastEnabled = Enable_in;
                     }
 
-                    this.Tcp_error_out = this.tcpErrorWasEncountered;
-                    this.Is_connected_out = this.IsTcpClientIsConnected;
+                    Tcp_error_out = this.tcpErrorWasEncountered;
+                    Is_connected_out = IsTcpClientIsConnected;
                 }
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 Logger.Fatal($"Caught tickthread exception: {ex}");
             }
         }
 
-        public override void Dispose()
-        {
+        public override void Dispose() {
             base.Dispose();
         }
     }
