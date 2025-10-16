@@ -114,8 +114,8 @@ namespace GHXX_TcpBridgeMod.Server {
         private bool enableConnection = false;
         private bool tcpErrorWasEncountered = false;
         private void WorkerThreadRun() {
-            try {
-                while (true) {
+            while (true) {
+                try {
                     if (!this.tcpErrorWasEncountered) {
                         while (this.tcpSendBuffer.TryDequeue(out byte res)) {
                             DebugMsg("A");
@@ -128,7 +128,6 @@ namespace GHXX_TcpBridgeMod.Server {
                             this.tcpRecBuffer.Enqueue(this.tcpStream.ReadByte());
                             if (queueUpdate)
                                 QueueLogicUpdate();
-
                         }
 
                         if (this.enableConnection && this.tcpClient == null) {
@@ -241,20 +240,13 @@ namespace GHXX_TcpBridgeMod.Server {
                             this.tcpClient = null;
                         }
                     }
-                    //var sw = new Stopwatch();
-                    //sw.Start();
-                    //this.tcpClientIsConnected =  &&
-                    //    this.tcpClient.Client.Connected;
-                    //sw.Stop();
-                    //if (sw.ElapsedMilliseconds > 1)
-                    //{
-                    //    Logger.Warn("Determining connection state took more than 1ms!");
-                    //}
-
                     Thread.Sleep(50);
+                } catch (Exception ex) {
+                    this.tcpErrorWasEncountered = true;
+                    QueueLogicUpdate();
+                    Logger.Fatal($"Caught workerthread exception (sleeping 1.5 sec): {ex}");
+                    Thread.Sleep(1000);
                 }
-            } catch (Exception ex) {
-                Logger.Fatal($"Caught workerthread exception: {ex}");
             }
         }
 
