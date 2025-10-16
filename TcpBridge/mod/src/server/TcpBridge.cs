@@ -263,8 +263,6 @@ namespace GHXX_TcpBridgeMod.Server {
 
 
         private bool firstUpdateSkipped = false;
-        private bool lastClkIn = false;
-        private bool lastClkOut = false;
         private bool lastEnabled = false;
 
         public override bool InputAtIndexShouldTriggerComponentLogicUpdates(int inputIndex) {
@@ -276,8 +274,6 @@ namespace GHXX_TcpBridgeMod.Server {
                 if (!this.firstUpdateSkipped) { // when init isnt completed yet, so we dont falsely trigger anything on the first iteration
                     DebugMsg("D");
                     this.firstUpdateSkipped = true;
-                    this.lastClkIn = Clk_in_in;
-                    this.lastClkOut = Clk_out_in;
                     this.lastEnabled = Enable_in;
                 } else {
                     if (Clk_in_in) {
