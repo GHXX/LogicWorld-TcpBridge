@@ -111,8 +111,8 @@ namespace GHXX_TcpBridgeMod.Server {
             this.workerThread.Start();
         }
 
-        private bool enableConnection = false;
-        private bool tcpErrorWasEncountered = false;
+        private volatile bool enableConnection = false;
+        private volatile bool tcpErrorWasEncountered = false;
         private void WorkerThreadRun() {
             while (true) {
                 try {
@@ -309,10 +309,10 @@ namespace GHXX_TcpBridgeMod.Server {
                         }
                         this.lastEnabled = Enable_in;
                     }
-
-                    Tcp_error_out = this.tcpErrorWasEncountered;
-                    Is_connected_out = IsTcpClientIsConnected;
                 }
+
+                Tcp_error_out = this.tcpErrorWasEncountered;
+                Is_connected_out = IsTcpClientIsConnected;
             } catch (Exception ex) {
                 Logger.Fatal($"Caught tickthread exception: {ex}");
             }
