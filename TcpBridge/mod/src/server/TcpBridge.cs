@@ -122,7 +122,7 @@ namespace GHXX_TcpBridgeMod.Server {
                             this.tcpStream.WriteByte(res);
                         }
 
-                        while (this.tcpRecBuffer.Count < 10 && this.tcpClient != null && this.tcpClient.Available > 0) {
+                        while (this.tcpRecBuffer.Count < 32 && this.tcpClient != null && this.tcpClient.Available > 0) {
                             bool queueUpdate = this.tcpRecBuffer.Count == 0;
                             DebugMsg("B");
                             this.tcpRecBuffer.Enqueue(this.tcpStream.ReadByte());
