@@ -11,5 +11,7 @@
             "192.168.0.0/16",
             "172.16.0.0/12"
         };
+
+        public const int RECEIVE_QUEUE_SZ = 1024;
     }
 }

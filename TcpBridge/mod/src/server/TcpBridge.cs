@@ -60,7 +60,6 @@ namespace GHXX_TcpBridgeMod.Server {
                 Logger.Info($"TcpBridge {s}");
 #pragma warning restore CS0162 // Unreachable code detected
         }
-
         private TcpClient tcpClient = null;
         private NetworkStream tcpStream = null;
 
@@ -122,7 +121,7 @@ namespace GHXX_TcpBridgeMod.Server {
                             this.tcpStream.WriteByte(res);
                         }
 
-                        while (this.tcpRecBuffer.Count < 32 && this.tcpClient != null && this.tcpClient.Available > 0) {
+                        while (this.tcpRecBuffer.Count < Config.RECEIVE_QUEUE_SZ && this.tcpClient != null && this.tcpClient.Available > 0) {
                             bool queueUpdate = this.tcpRecBuffer.Count == 0;
                             DebugMsg("B");
                             this.tcpRecBuffer.Enqueue(this.tcpStream.ReadByte());
