@@ -51,8 +51,8 @@ namespace GHXX_TcpBridgeMod.Server {
         private bool Data_ready_out { get => base.Outputs[8].On; set => base.Outputs[8].On = value; }
         private bool Tcp_error_out { get => base.Outputs[9].On; set => base.Outputs[9].On = value; }
         private bool Is_connected_out { get => base.Outputs[10].On; set => base.Outputs[10].On = value; }
-
         private bool IsTcpClientIsConnected => this.tcpClient != null && this.tcpClient.Connected;
+
 
         private void DebugMsg(string s) {
             if (EnableDebugMessages)
@@ -126,8 +126,8 @@ namespace GHXX_TcpBridgeMod.Server {
                             bool queueUpdate = this.tcpRecBuffer.Count == 0;
                             DebugMsg("B");
                             this.tcpRecBuffer.Enqueue(this.tcpStream.ReadByte());
-                            if (queueUpdate)
-                                QueueLogicUpdate();
+                            //if (queueUpdate)
+                                //QueueLogicUpdate();
                         }
 
                         if (this.enableConnection && this.tcpClient == null) {
@@ -150,7 +150,7 @@ namespace GHXX_TcpBridgeMod.Server {
                                                 Logger.Info($"Attempting to connect to ip: {string.Join(".", ipBytes.Select(x => $"{x}"))}:{port}");
                                                 this.tcpClient.Connect(address, port);
                                                 Logger.Info($"Connected to connect to ip: {string.Join(".", ipBytes.Select(x => $"{x}"))}:{port}");
-                                                QueueLogicUpdate();
+                                                //QueueLogicUpdate();
                                             } else {
                                                 Logger.Info($"Attempted to connect to blacklisted ip: {string.Join(".", ipBytes.Select(x => $"{x}"))}:{port}");
                                                 errored = true;
@@ -206,7 +206,7 @@ namespace GHXX_TcpBridgeMod.Server {
                                                     Logger.Info($"Attempting to connect to host: {hostname}:{(int)port} ({address}:{(int)port})");
                                                     this.tcpClient.Connect(address, (int)port);
                                                     Logger.Info($"Connected to connect to host: {hostname}:{(int)port} ({address}:{(int)port})");
-                                                    QueueLogicUpdate();
+                                                    //QueueLogicUpdate();
                                                 } else // otherwise reject
                                                   {
                                                     Logger.Info($"Attempted to connect to host '{hostname}', but its ip addresse ({address}) is blacklisted, thus no connection was made.");
@@ -229,12 +229,12 @@ namespace GHXX_TcpBridgeMod.Server {
                             }
 
                             if (this.tcpErrorWasEncountered) {
-                                QueueLogicUpdate();
+                                //QueueLogicUpdate();
                             }
                         } else if (!this.enableConnection && this.tcpClient != null) {
                             try {
                                 this.tcpClient.Close();
-                                QueueLogicUpdate();
+                                //QueueLogicUpdate();
                             } catch (Exception) { }
 
                             this.tcpClient = null;
@@ -243,7 +243,7 @@ namespace GHXX_TcpBridgeMod.Server {
                     Thread.Sleep(50);
                 } catch (Exception ex) {
                     this.tcpErrorWasEncountered = true;
-                    QueueLogicUpdate();
+                    //QueueLogicUpdate();
                     Logger.Fatal($"Caught workerthread exception (sleeping 1.5 sec): {ex}");
                     Thread.Sleep(1000);
                 }
@@ -270,7 +270,7 @@ namespace GHXX_TcpBridgeMod.Server {
                 } else {
                     if (Clk_in_in) {
                         AddSendByte(Data_in);
-                        QueueLogicUpdate(); // we need to keep reading data each tick
+                        //QueueLogicUpdate(); // we need to keep reading data each tick
                     }
 
                     Data_ready_out = IsReceiveDataAvailable();
@@ -286,6 +286,7 @@ namespace GHXX_TcpBridgeMod.Server {
                             Data_out = GetNextReceivedByte();
                             DebugMsg("E3-done");
                         }
+                        //QueueLogicUpdate(); // we need to keep reading data each tick
                     }
 
                     if (this.lastEnabled != Enable_in) // then check enable-edges
@@ -305,7 +306,7 @@ namespace GHXX_TcpBridgeMod.Server {
                             this.tcpSendBuffer.Clear();
                             this.tcpConnectDataBuffer.Clear();
                             this.tcpRecBuffer.Clear();
-                            QueueLogicUpdate();
+                            //QueueLogicUpdate();
                         }
                         this.lastEnabled = Enable_in;
                     }
@@ -315,6 +316,8 @@ namespace GHXX_TcpBridgeMod.Server {
                 Is_connected_out = IsTcpClientIsConnected;
             } catch (Exception ex) {
                 Logger.Fatal($"Caught tickthread exception: {ex}");
+            } finally {
+                QueueLogicUpdate();
             }
         }
 
